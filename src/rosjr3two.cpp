@@ -10,9 +10,7 @@
 
 // ROS includes
 #include "ros/ros.h"
-#include "std_msgs/Float32MultiArray.h"
-#include "std_msgs/MultiArrayDimension.h"
-#include "std_msgs/MultiArrayLayout.h"
+#include "geometry_msgs/WrenchStamped.h"
 
 #define FILTER0 2
 #define FILTER1 3
@@ -32,9 +30,9 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
 
   ros::Publisher frctrq0_pub =
-      n.advertise<std_msgs::Float32MultiArray>("jr3ft0", 10);
+      n.advertise<geometry_msgs::WrenchStamped>("jr3ft0", 10);
   ros::Publisher frctrq1_pub =
-      n.advertise<std_msgs::Float32MultiArray>("jr3ft1", 10);
+      n.advertise<geometry_msgs::WrenchStamped>("jr3ft1", 10);
 
   // --- Load and apply parameters ---
   int rate_hz = 1000;
@@ -66,7 +64,7 @@ int main(int argc, char **argv) {
   ret = ioctl(fd, IOCTL1_JR3_ZEROOFFS);
 
   while (ros::ok()) {
-    // Read the current forces/torques (raw 14 bit ADC values)
+    // --- Read the current forces/torques (raw 14 bit ADC values) ---
     switch (num_filter) {
     case FILTER0:
       ret = ioctl(fd, IOCTL0_JR3_FILTER0, &fm0);
@@ -99,26 +97,30 @@ int main(int argc, char **argv) {
     }
 
     if (ret != -1) {
-      // --- Construct the message ---
-      std_msgs::Float32MultiArray msg_array0;
-      std_msgs::Float32MultiArray msg_array1;
-      // Clear array
-      msg_array0.data.clear();
-      msg_array1.data.clear();
+      // --- Construct the messages ---
+      geometry_msgs::WrenchStamped msg_wrench0;
+      geometry_msgs::WrenchStamped msg_wrench1;
+      ros::Time time_now = ros::Time::now();
+      msg_wrench0.header.stamp = time_now;
+      msg_wrench0.header.frame_id = "base_link";
+      msg_wrench0.wrench.force.x = (float)fm0.f[0] * fs.f[0] / 16384;
+      msg_wrench0.wrench.force.y = (float)fm0.f[1] * fs.f[1] / 16384;
+      msg_wrench0.wrench.force.z = (float)fm0.f[2] * fs.f[2] / 16384;
+      msg_wrench0.wrench.torque.x = (float)fm0.m[0] * fs.m[0] / 16384;
+      msg_wrench0.wrench.torque.y = (float)fm0.m[1] * fs.m[1] / 16384;
+      msg_wrench0.wrench.torque.z = (float)fm0.m[2] * fs.m[2] / 16384;
+      msg_wrench1.header.stamp = time_now;
+      msg_wrench1.header.frame_id = "base_link";
+      msg_wrench1.wrench.force.x = (float)fm1.f[0] * fs.f[0] / 16384;
+      msg_wrench1.wrench.force.y = (float)fm1.f[1] * fs.f[1] / 16384;
+      msg_wrench1.wrench.force.z = (float)fm1.f[2] * fs.f[2] / 16384;
+      msg_wrench1.wrench.torque.x = (float)fm1.m[0] * fs.m[0] / 16384;
+      msg_wrench1.wrench.torque.y = (float)fm1.m[1] * fs.m[1] / 16384;
+      msg_wrench1.wrench.torque.z = (float)fm1.m[2] * fs.m[2] / 16384;
 
-      for (i = 0; i < 3; i++){
-        msg_array0.data.push_back((float)fm0.f[i] * fs.f[i] / 16384);
-        msg_array1.data.push_back((float)fm1.f[i] * fs.f[i] / 16384);
-      }
-
-      for (i = 0; i < 3; i++){
-        msg_array0.data.push_back((float)fm0.m[i] * fs.m[i] / 16384);
-        msg_array1.data.push_back((float)fm1.m[i] * fs.m[i] / 16384);
-      }
-
-      // --- Publish the message ---
-      frctrq0_pub.publish(msg_array0);
-      frctrq1_pub.publish(msg_array1);
+      // --- Publish the messages ---
+      frctrq0_pub.publish(msg_wrench0);
+      frctrq1_pub.publish(msg_wrench1);
 
       ros::spinOnce();
       loop_rate.sleep();
@@ -130,7 +132,7 @@ int main(int argc, char **argv) {
       return -1;
     }
   }
-  // TODO This does not seem to be actuatlly called ... figure out why
+  // TODO This does not seem to be actually called ... figure out why
   ROS_INFO("Shutting down rosjr3 node.");
   close(fd);
 }

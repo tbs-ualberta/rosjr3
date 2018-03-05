@@ -10,9 +10,7 @@
 
 // ROS includes
 #include "ros/ros.h"
-#include "std_msgs/Float32MultiArray.h"
-#include "std_msgs/MultiArrayDimension.h"
-#include "std_msgs/MultiArrayLayout.h"
+#include "geometry_msgs/WrenchStamped.h"
 
 #define SENSOR0 0
 #define SENSOR1 1
@@ -34,7 +32,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle n;
 
   ros::Publisher frctrq_pub =
-      n.advertise<std_msgs::Float32MultiArray>("jr3ft", 10);
+      n.advertise<geometry_msgs::WrenchStamped>("jr3ft", 10);
 
   // --- Load and apply parameters ---
   int rate_hz = 1000;
@@ -76,7 +74,7 @@ int main(int argc, char **argv) {
   }
 
   while (ros::ok()) {
-    // Read the current forces/torques (raw 14 bit ADC values)
+    // --- Read the current forces/torques (raw 14 bit ADC values) ---
     switch (num_sensor) {
     case SENSOR0:
       switch (num_filter) {
@@ -132,18 +130,18 @@ int main(int argc, char **argv) {
 
     if (ret != -1) {
       // --- Construct the message ---
-      std_msgs::Float32MultiArray msg_array;
-      // Clear array
-      msg_array.data.clear();
-
-      for (i = 0; i < 3; i++)
-        msg_array.data.push_back((float)fm.f[i] * fs.f[i] / 16384);
-
-      for (i = 0; i < 3; i++)
-        msg_array.data.push_back((float)fm.m[i] * fs.m[i] / 16384);
+      geometry_msgs::WrenchStamped msg_wrench;
+      msg_wrench.header.stamp = ros::Time::now();
+      msg_wrench.header.frame_id = "base_link";
+      msg_wrench.wrench.force.x = (float)fm.f[0] * fs.f[0] / 16384;
+      msg_wrench.wrench.force.y = (float)fm.f[1] * fs.f[1] / 16384;
+      msg_wrench.wrench.force.z = (float)fm.f[2] * fs.f[2] / 16384;
+      msg_wrench.wrench.torque.x = (float)fm.m[0] * fs.m[0] / 16384;
+      msg_wrench.wrench.torque.y = (float)fm.m[1] * fs.m[1] / 16384;
+      msg_wrench.wrench.torque.z = (float)fm.m[2] * fs.m[2] / 16384;
 
       // --- Publish the message ---
-      frctrq_pub.publish(msg_array);
+      frctrq_pub.publish(msg_wrench);
 
       ros::spinOnce();
       loop_rate.sleep();
@@ -155,7 +153,7 @@ int main(int argc, char **argv) {
       return -1;
     }
   }
-  // TODO This does not seem to be actuatlly called ... figure out why
+  // TODO This does not seem to be actually called ... figure out why
   ROS_INFO("Shutting down rosjr3 node.");
   close(fd);
 }
