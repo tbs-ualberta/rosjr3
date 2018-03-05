@@ -199,4 +199,6 @@ include_directories(
 # catkin_add_nosetests(test)
 
 add_executable(rosjr3 src/rosjr3.cpp)
+add_executable(rosjr3two src/rosjr3two.cpp)
 target_link_libraries(rosjr3 ${catkin_LIBRARIES})
+target_link_libraries(rosjr3two ${catkin_LIBRARIES})

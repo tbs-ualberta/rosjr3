@@ -33,7 +33,6 @@ int main(int argc, char **argv) {
 
   ros::NodeHandle n;
 
-  // TODO implement option to publish data of two sensors at the same time
   ros::Publisher frctrq_pub =
       n.advertise<std_msgs::Float32MultiArray>("jr3ft", 10);
 
@@ -103,7 +102,6 @@ int main(int argc, char **argv) {
         ret = ioctl(fd, IOCTL0_JR3_FILTER6, &fm);
         break;
       }
-      // TODO Add a conditional break for the case that both sensors are used
       break;
     case SENSOR1:
       switch (num_filter) {
