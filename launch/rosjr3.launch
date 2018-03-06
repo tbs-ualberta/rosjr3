@@ -1,0 +1,10 @@
+<launch>
+  <node pkg="rosjr3" name="rosjr3" type="rosjr3" output="screen">
+    <rosparam>
+      rate: 1000
+      num_filter: 3
+      num_sensor: 0
+      full_scales: [100, 100, 200, 5, 5, 5]
+    </rosparam>
+  </node>
+</launch>
