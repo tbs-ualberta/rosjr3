@@ -11,7 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   message_generation
+  geometry_msgs
 )
+
+set(VER_DATA_TRANSMISSION_LIB 0.1.0)
+
 
 ## System dependencies are found with CMake's conventions
 #find_package(stdio REQUIRED)
@@ -120,6 +124,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  /usr/local/include/data_transmission/v${VER_DATA_TRANSMISSION_LIB}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -203,6 +208,13 @@ include_directories(
 
 add_executable(rosjr3 src/rosjr3.cpp)
 add_executable(rosjr3two src/rosjr3two.cpp)
+add_executable(rosjr3_udp src/rosjr3_udp.cpp)
 target_link_libraries(rosjr3 ${catkin_LIBRARIES})
 target_link_libraries(rosjr3two ${catkin_LIBRARIES})
 add_dependencies(rosjr3 rosjr3_gencpp)
+
+target_link_libraries(rosjr3_udp ${catkin_LIBRARIES})
+target_link_libraries(
+  rosjr3_udp
+  /usr/local/lib/data_transmission/v${VER_DATA_TRANSMISSION_LIB}/libdata_transmission.a
+)
