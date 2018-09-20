@@ -12,15 +12,15 @@
 #include "ros/ros.h"
 #include "geometry_msgs/WrenchStamped.h"
 
+#define FILTER0 0
+#define FILTER1 1
+#define FILTER2 2
+#define FILTER3 3
+#define FILTER4 4
+#define FILTER5 5
+#define FILTER6 6
 #define SENSOR0 0
 #define SENSOR1 1
-#define FILTER0 2
-#define FILTER1 3
-#define FILTER2 4
-#define FILTER3 5
-#define FILTER4 6
-#define FILTER5 7
-#define FILTER6 8
 
 int main(int argc, char **argv) {
   six_axis_array fm;

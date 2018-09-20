@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>rosjr3</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>A ROS package for JR3 force/torque sensors.</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
