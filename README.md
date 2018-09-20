@@ -13,6 +13,8 @@ A ROS package for JR3 force/torque sensors with (so far) very basic functionalit
     - ``rate`` (int, default: 1000): Sampling rate [Hz]
     - ``full_scales`` (std::vector<int>, default: [100, 100, 200, 5, 5, 5]): Sensor's full scales [N, N, N, Nm, Nm, Nm]
     - ``num_filter`` (int, default: 0): Filter number (0-6)
+    - ``frame_rhs`` (boolean, default: false): Publish force/torque in left-handed
+      coordinate frame (false) or right-handed coordiante frame (true)
 - ``rosjr3`` only:
     - ``num_sensor`` (int, default: 0): Sensor number (0, 1), if supported by DSP board
 

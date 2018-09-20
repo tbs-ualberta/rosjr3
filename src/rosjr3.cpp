@@ -9,8 +9,8 @@
 #include <unistd.h>
 
 // ROS includes
-#include "ros/ros.h"
 #include "geometry_msgs/WrenchStamped.h"
+#include "ros/ros.h"
 
 #define FILTER0 0
 #define FILTER1 1
@@ -54,6 +54,9 @@ int main(int argc, char **argv) {
   int num_filter = 0;
   n.getParam("rosjr3/num_filter", num_filter);
   ROS_INFO("num_filter = %d", num_filter);
+
+  bool frame_rhs = false;
+  n.getParam("rosjr3/frame_rhs", frame_rhs);
 
   // --- Try to open the device ---
   if ((fd = open("/dev/jr3", O_RDWR)) < 0) {
@@ -129,14 +132,20 @@ int main(int argc, char **argv) {
     }
 
     if (ret != -1) {
+      char fct_orient = 1;
+      if (frame_rhs) {
+        fct_orient = -1;
+      }
       // --- Construct the message ---
       geometry_msgs::WrenchStamped msg_wrench;
       msg_wrench.header.stamp = ros::Time::now();
       msg_wrench.header.frame_id = "base_link";
       msg_wrench.wrench.force.x = (float)fm.f[0] * fs.f[0] / 16384;
-      msg_wrench.wrench.force.y = (float)fm.f[1] * fs.f[1] / 16384;
+      msg_wrench.wrench.force.y =
+          fct_orient * ((float)fm.f[1] * fs.f[1] / 16384);
       msg_wrench.wrench.force.z = (float)fm.f[2] * fs.f[2] / 16384;
-      msg_wrench.wrench.torque.x = (float)fm.m[0] * fs.m[0] / 16384;
+      msg_wrench.wrench.torque.x =
+          fct_orient * ((float)fm.m[0] * fs.m[0] / 16384);
       msg_wrench.wrench.torque.y = (float)fm.m[1] * fs.m[1] / 16384;
       msg_wrench.wrench.torque.z = (float)fm.m[2] * fs.m[2] / 16384;
 
