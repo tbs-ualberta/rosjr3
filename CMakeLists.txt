@@ -10,6 +10,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -57,11 +58,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Bias.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -71,7 +71,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-#generate_messages(DEPENDENCIES std_msgs)
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -202,3 +205,4 @@ add_executable(rosjr3 src/rosjr3.cpp)
 add_executable(rosjr3two src/rosjr3two.cpp)
 target_link_libraries(rosjr3 ${catkin_LIBRARIES})
 target_link_libraries(rosjr3two ${catkin_LIBRARIES})
+add_dependencies(rosjr3 rosjr3_gencpp)

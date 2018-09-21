@@ -11,6 +11,7 @@
 // ROS includes
 #include "geometry_msgs/WrenchStamped.h"
 #include "ros/ros.h"
+#include "rosjr3/Bias.h"
 
 #define FILTER0 0
 #define FILTER1 1
@@ -20,19 +21,25 @@
 #define FILTER5 5
 #define FILTER6 6
 
+// Globals
+int g_fd;
+
+bool cb_bias(rosjr3::Bias::Request &req, rosjr3::Bias::Response &res) {
+  char ret = 0;
+  // --- Remove the offsets ---
+  ret = ioctl(g_fd, IOCTL0_JR3_ZEROOFFS);
+  ret = ioctl(g_fd, IOCTL1_JR3_ZEROOFFS);
+  return !(bool)ret;
+}
+
 int main(int argc, char **argv) {
   six_axis_array fm0, fm1;
   force_array fs;
-  int ret, i, fd;
+  int ret, i;
 
   ros::init(argc, argv, "rosjr3");
 
   ros::NodeHandle n;
-
-  ros::Publisher frctrq0_pub =
-      n.advertise<geometry_msgs::WrenchStamped>("jr3ft0", 10);
-  ros::Publisher frctrq1_pub =
-      n.advertise<geometry_msgs::WrenchStamped>("jr3ft1", 10);
 
   // --- Load and apply parameters ---
   int rate_hz = 1000;
@@ -55,7 +62,7 @@ int main(int argc, char **argv) {
   n.getParam("rosjr3/frame_rhs", frame_rhs);
 
   // --- Try to open the device ---
-  if ((fd = open("/dev/jr3", O_RDWR)) < 0) {
+  if ((g_fd = open("/dev/jr3", O_RDWR)) < 0) {
     ROS_ERROR("Can't open device. No way to read force!");
     ROS_INFO("Shutting down rosjr3 node.");
     ros::shutdown();
@@ -63,39 +70,48 @@ int main(int argc, char **argv) {
   }
 
   // --- Remove the offsets ---
-  ret = ioctl(fd, IOCTL0_JR3_ZEROOFFS);
-  ret = ioctl(fd, IOCTL1_JR3_ZEROOFFS);
+  ret = ioctl(g_fd, IOCTL0_JR3_ZEROOFFS);
+  ret = ioctl(g_fd, IOCTL1_JR3_ZEROOFFS);
+
+  // --- Advertise publishers ---
+  ros::Publisher frctrq0_pub =
+      n.advertise<geometry_msgs::WrenchStamped>("jr3ft0", 10);
+  ros::Publisher frctrq1_pub =
+      n.advertise<geometry_msgs::WrenchStamped>("jr3ft1", 10);
+
+  // --- Advertise services ---
+  ros::ServiceServer srv_bias = n.advertiseService("/rosjr3/bias", cb_bias);
 
   while (ros::ok()) {
     // --- Read the current forces/torques (raw 14 bit ADC values) ---
     switch (num_filter) {
     case FILTER0:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER0, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER0, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER0, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER0, &fm1);
       break;
     case FILTER1:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER1, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER1, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER1, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER1, &fm1);
       break;
     case FILTER2:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER2, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER2, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER2, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER2, &fm1);
       break;
     case FILTER3:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER3, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER3, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER3, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER3, &fm1);
       break;
     case FILTER4:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER4, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER4, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER4, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER4, &fm1);
       break;
     case FILTER5:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER5, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER5, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER5, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER5, &fm1);
       break;
     case FILTER6:
-      ret = ioctl(fd, IOCTL0_JR3_FILTER6, &fm0);
-      ret = ioctl(fd, IOCTL1_JR3_FILTER6, &fm1);
+      ret = ioctl(g_fd, IOCTL0_JR3_FILTER6, &fm0);
+      ret = ioctl(g_fd, IOCTL1_JR3_FILTER6, &fm1);
       break;
     }
 
@@ -118,7 +134,7 @@ int main(int argc, char **argv) {
           fct_orient * ((float)fm0.m[0] * fs.m[0] / 16384);
       msg_wrench0.wrench.torque.y = (float)fm0.m[1] * fs.m[1] / 16384;
       msg_wrench0.wrench.torque.z = (float)fm0.m[2] * fs.m[2] / 16384;
-      
+
       msg_wrench1.header.stamp = time_now;
       msg_wrench1.header.frame_id = "base_link";
       msg_wrench1.wrench.force.x = (float)fm1.f[0] * fs.f[0] / 16384;
@@ -146,5 +162,5 @@ int main(int argc, char **argv) {
   }
   // TODO This does not seem to be actually called ... figure out why
   ROS_INFO("Shutting down rosjr3 node.");
-  close(fd);
+  close(g_fd);
 }

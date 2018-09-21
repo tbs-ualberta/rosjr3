@@ -11,6 +11,7 @@
 // ROS includes
 #include "geometry_msgs/WrenchStamped.h"
 #include "ros/ros.h"
+#include "rosjr3/Bias.h"
 
 #define FILTER0 0
 #define FILTER1 1
@@ -22,17 +23,32 @@
 #define SENSOR0 0
 #define SENSOR1 1
 
+// Globals
+int g_fd;
+int g_num_sensor = 0;
+
+bool cb_bias(rosjr3::Bias::Request &req, rosjr3::Bias::Response &res) {
+  char ret = 0;
+  // --- Remove the offsets ---
+  switch (g_num_sensor) {
+  case SENSOR0:
+    ret = ioctl(g_fd, IOCTL0_JR3_ZEROOFFS);
+    break;
+  case SENSOR1:
+    ret = ioctl(g_fd, IOCTL1_JR3_ZEROOFFS);
+    break;
+  }
+  return !(bool)ret;
+}
+
 int main(int argc, char **argv) {
   six_axis_array fm;
   force_array fs;
-  int ret, i, fd;
+  int ret, i;
 
   ros::init(argc, argv, "rosjr3");
 
   ros::NodeHandle n;
-
-  ros::Publisher frctrq_pub =
-      n.advertise<geometry_msgs::WrenchStamped>("jr3ft", 10);
 
   // --- Load and apply parameters ---
   int rate_hz = 1000;
@@ -47,9 +63,8 @@ int main(int argc, char **argv) {
     }
   }
 
-  int num_sensor = 0;
-  n.getParam("rosjr3/num_sensor", num_sensor);
-  ROS_INFO("num_sensor = %d", num_sensor);
+  n.getParam("rosjr3/num_sensor", g_num_sensor);
+  ROS_INFO("num_sensor = %d", g_num_sensor);
 
   int num_filter = 0;
   n.getParam("rosjr3/num_filter", num_filter);
@@ -59,7 +74,7 @@ int main(int argc, char **argv) {
   n.getParam("rosjr3/frame_rhs", frame_rhs);
 
   // --- Try to open the device ---
-  if ((fd = open("/dev/jr3", O_RDWR)) < 0) {
+  if ((g_fd = open("/dev/jr3", O_RDWR)) < 0) {
     ROS_ERROR("Can't open device. No way to read force!");
     ROS_INFO("Shutting down rosjr3 node.");
     ros::shutdown();
@@ -67,65 +82,72 @@ int main(int argc, char **argv) {
   }
 
   // --- Remove the offsets ---
-  switch (num_sensor) {
+  switch (g_num_sensor) {
   case SENSOR0:
-    ret = ioctl(fd, IOCTL0_JR3_ZEROOFFS);
+    ret = ioctl(g_fd, IOCTL0_JR3_ZEROOFFS);
     break;
   case SENSOR1:
-    ret = ioctl(fd, IOCTL1_JR3_ZEROOFFS);
+    ret = ioctl(g_fd, IOCTL1_JR3_ZEROOFFS);
     break;
   }
 
+  // --- Advertise publishers ---
+  ros::Publisher frctrq_pub =
+      n.advertise<geometry_msgs::WrenchStamped>("jr3ft", 10);
+
+  // --- Advertise services ---
+  ros::ServiceServer srv_bias = n.advertiseService("/rosjr3/bias", cb_bias);
+
   while (ros::ok()) {
     // --- Read the current forces/torques (raw 14 bit ADC values) ---
-    switch (num_sensor) {
+    switch (g_num_sensor) {
     case SENSOR0:
       switch (num_filter) {
       case FILTER0:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER0, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER0, &fm);
         break;
       case FILTER1:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER1, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER1, &fm);
         break;
       case FILTER2:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER2, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER2, &fm);
         break;
       case FILTER3:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER3, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER3, &fm);
         break;
       case FILTER4:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER4, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER4, &fm);
         break;
       case FILTER5:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER5, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER5, &fm);
         break;
       case FILTER6:
-        ret = ioctl(fd, IOCTL0_JR3_FILTER6, &fm);
+        ret = ioctl(g_fd, IOCTL0_JR3_FILTER6, &fm);
         break;
       }
       break;
     case SENSOR1:
       switch (num_filter) {
       case FILTER0:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER0, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER0, &fm);
         break;
       case FILTER1:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER1, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER1, &fm);
         break;
       case FILTER2:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER2, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER2, &fm);
         break;
       case FILTER3:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER3, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER3, &fm);
         break;
       case FILTER4:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER4, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER4, &fm);
         break;
       case FILTER5:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER5, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER5, &fm);
         break;
       case FILTER6:
-        ret = ioctl(fd, IOCTL1_JR3_FILTER6, &fm);
+        ret = ioctl(g_fd, IOCTL1_JR3_FILTER6, &fm);
         break;
       }
       break;
@@ -164,5 +186,5 @@ int main(int argc, char **argv) {
   }
   // TODO This does not seem to be actually called ... figure out why
   ROS_INFO("Shutting down rosjr3 node.");
-  close(fd);
+  close(g_fd);
 }

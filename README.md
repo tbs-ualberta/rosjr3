@@ -18,6 +18,9 @@ A ROS package for JR3 force/torque sensors with (so far) very basic functionalit
 - ``rosjr3`` only:
     - ``num_sensor`` (int, default: 0): Sensor number (0, 1), if supported by DSP board
 
+**Services:**
+- ``/rosjr3/bias``: When called, sensor(s) is/are biased. When two sensors are connected and read using ``rosjr3two``, both sensors are biased at the same time. 
+
 To test the package, run:
 - ``roslaunch rosjr3 rosjr3.launch`` (one sensor)
 - ``roslaunch rosjr3 rosjr3two.launch`` (two sensors)
